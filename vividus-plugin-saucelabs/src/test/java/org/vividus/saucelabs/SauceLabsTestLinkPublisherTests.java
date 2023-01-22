@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 the original author or authors.
+ * Copyright 2019-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,19 +18,24 @@ package org.vividus.saucelabs;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.saucelabs.saucerest.DataCenter;
-
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.vividus.selenium.cloud.AbstractCloudTestLinkPublisher.GetCloudTestUrlException;
 
 class SauceLabsTestLinkPublisherTests
 {
-    @Test
-    void shouldReturnSessionUrl() throws GetCloudTestUrlException
+    @ParameterizedTest
+    @CsvSource({
+            "eu,             app.eu-central-1.saucelabs.com",
+            "EU_CENTRAL,     app.eu-central-1.saucelabs.com",
+            "US,             app.saucelabs.com",
+            "us_west,        app.saucelabs.com",
+            "us_east,        app.us-east-1.saucelabs.com",
+            "APAC_SOUTHEAST, app.apac-southeast-1.saucelabs.com"
+    })
+    void shouldReturnSessionUrl(String dataCenter, String host) throws GetCloudTestUrlException
     {
-        SauceLabsTestLinkPublisher linkPublisher = new SauceLabsTestLinkPublisher(DataCenter.EU, null, null,
-                null);
-        assertEquals("https://app.eu-central-1.saucelabs.com/tests/session-id",
-                linkPublisher.getCloudTestUrl("session-id"));
+        var linkPublisher = new SauceLabsTestLinkPublisher(new DataCenterProvider(dataCenter), null, null, null);
+        assertEquals("https://" + host + "/tests/session-id", linkPublisher.getCloudTestUrl("session-id"));
     }
 }

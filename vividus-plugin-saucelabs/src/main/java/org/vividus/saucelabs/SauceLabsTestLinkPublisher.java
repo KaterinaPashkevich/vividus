@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 the original author or authors.
+ * Copyright 2019-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package org.vividus.saucelabs;
 import static java.lang.String.format;
 
 import com.google.common.eventbus.EventBus;
-import com.saucelabs.saucerest.DataCenter;
 
 import org.vividus.selenium.IWebDriverProvider;
 import org.vividus.selenium.cloud.AbstractCloudTestLinkPublisher;
@@ -29,11 +28,11 @@ public class SauceLabsTestLinkPublisher extends AbstractCloudTestLinkPublisher
 {
     private final String sauceLabsUrl;
 
-    public SauceLabsTestLinkPublisher(DataCenter dataCenter, IWebDriverProvider webDriverProvider, EventBus eventBus,
-            TestContext testContext)
+    public SauceLabsTestLinkPublisher(DataCenterProvider dataCenterProvider, IWebDriverProvider webDriverProvider,
+            EventBus eventBus, TestContext testContext)
     {
         super("SauceLabs", webDriverProvider, eventBus, testContext);
-        this.sauceLabsUrl = dataCenter.appServer();
+        this.sauceLabsUrl = dataCenterProvider.getDataCenter().appServer();
     }
 
     @Override

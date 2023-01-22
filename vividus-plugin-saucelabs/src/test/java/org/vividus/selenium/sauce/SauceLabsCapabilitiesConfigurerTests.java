@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2022 the original author or authors.
+ * Copyright 2019-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,13 +29,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import com.saucelabs.saucerest.DataCenter;
+
 import org.jbehave.core.model.Story;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openqa.selenium.Proxy;
@@ -43,6 +45,7 @@ import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.vividus.context.RunContext;
 import org.vividus.model.RunningStory;
+import org.vividus.saucelabs.DataCenterProvider;
 import org.vividus.selenium.tunnel.TunnelException;
 
 @ExtendWith(MockitoExtension.class)
@@ -58,13 +61,21 @@ class SauceLabsCapabilitiesConfigurerTests
 
     private static final String STORY_PATH = STORY_NAME + ".story";
 
-    private static final String REST_URL = "http://eu-central-1.saucelabs.com/rest/v1";
+    private static final String REST_URL = "https://api.eu-central-1.saucelabs.com/rest/v1";
     private static final String CUSTOM_ARGS = "--verbose";
     private static final Set<String> SKIP_HOST_GLOB_PATTERNS = Set.of("example.com");
 
+    @Mock private DataCenterProvider dataCenterProvider;
     @Mock private RunContext runContext;
     @Mock private SauceConnectManager sauceConnectManager;
-    @InjectMocks private SauceLabsCapabilitiesConfigurer configurer;
+    private SauceLabsCapabilitiesConfigurer configurer;
+
+    @BeforeEach
+    void beforeEach()
+    {
+        when(dataCenterProvider.getDataCenter()).thenReturn(DataCenter.EU_CENTRAL);
+        configurer = new SauceLabsCapabilitiesConfigurer(runContext, sauceConnectManager, dataCenterProvider);
+    }
 
     @Test
     void shouldStopSauceConnectOnWebDriverQuit() throws TunnelException
@@ -78,7 +89,7 @@ class SauceLabsCapabilitiesConfigurerTests
     {
         mockRunningStory();
         configurer.setTunnellingEnabled(false);
-        DesiredCapabilities desiredCapabilities = mockDesiredCapabilities(null, null);
+        var desiredCapabilities = mockDesiredCapabilities(null, null);
         configurer.configure(desiredCapabilities);
         verify(desiredCapabilities).setCapability(SAUCE_OPTIONS, Map.of(NAME_CAPABILITY, STORY_NAME));
         verifyNoInteractions(sauceConnectManager);
@@ -90,8 +101,8 @@ class SauceLabsCapabilitiesConfigurerTests
         mockRunningStory();
         configurer.setTunnellingEnabled(true);
         Map<String, Object> sauceOptions = new HashMap<>();
-        DesiredCapabilities desiredCapabilities = mockDesiredCapabilities(null, sauceOptions);
-        SauceConnectOptions sauceConnectOptions = new SauceConnectOptions(null, null, Set.of());
+        var desiredCapabilities = mockDesiredCapabilities(null, sauceOptions);
+        var sauceConnectOptions = new SauceConnectOptions(REST_URL, null, Set.of());
         when(sauceConnectManager.start(sauceConnectOptions)).thenReturn(TUNNEL_NAME);
 
         configurer.configure(desiredCapabilities);
@@ -104,19 +115,18 @@ class SauceLabsCapabilitiesConfigurerTests
     void shouldStartSauceConnectWhenSauceConnectIsDisabledButProxyIsStarted()
     {
         configurer.setTunnellingEnabled(false);
-        configurer.setRestUrl(REST_URL);
         configurer.setSauceConnectArguments(CUSTOM_ARGS);
         configurer.setSkipHostGlobPatterns(SKIP_HOST_GLOB_PATTERNS);
-        Proxy proxy = mock(Proxy.class);
-        String httpProxy = "http-proxy:8080";
+        var proxy = mock(Proxy.class);
+        var httpProxy = "http-proxy:8080";
         when(proxy.getHttpProxy()).thenReturn(httpProxy);
 
-        SauceConnectOptions sauceConnectOptions = new SauceConnectOptions(REST_URL, CUSTOM_ARGS,
+        var sauceConnectOptions = new SauceConnectOptions(REST_URL, CUSTOM_ARGS,
                 SKIP_HOST_GLOB_PATTERNS);
         sauceConnectOptions.setProxy(httpProxy);
 
         Map<String, Object> sauceOptions = new HashMap<>();
-        DesiredCapabilities desiredCapabilities = mockDesiredCapabilities(proxy, sauceOptions);
+        var desiredCapabilities = mockDesiredCapabilities(proxy, sauceOptions);
 
         when(sauceConnectManager.start(sauceConnectOptions)).thenReturn(TUNNEL_NAME);
 
@@ -136,9 +146,8 @@ class SauceLabsCapabilitiesConfigurerTests
 
     @ParameterizedTest
     @MethodSource("globPattens")
-    void shouldCreateOptios(Set<String> setValue, Set<String> expectedValue)
+    void shouldCreateOptions(Set<String> setValue, Set<String> expectedValue)
     {
-        configurer.setRestUrl(REST_URL);
         configurer.setSauceConnectArguments(CUSTOM_ARGS);
         configurer.setSkipHostGlobPatterns(setValue);
         assertEquals(new SauceConnectOptions(REST_URL, CUSTOM_ARGS, expectedValue), configurer.createOptions());
@@ -146,15 +155,15 @@ class SauceLabsCapabilitiesConfigurerTests
 
     private void mockRunningStory()
     {
-        Story story = new Story(STORY_PATH, List.of());
-        RunningStory runningStory = new RunningStory();
+        var story = new Story(STORY_PATH, List.of());
+        var runningStory = new RunningStory();
         runningStory.setStory(story);
         when(runContext.getRootRunningStory()).thenReturn(runningStory);
     }
 
     private DesiredCapabilities mockDesiredCapabilities(Proxy proxy, Map<String, Object> sauceOptions)
     {
-        DesiredCapabilities desiredCapabilities = mock(DesiredCapabilities.class);
+        var desiredCapabilities = mock(DesiredCapabilities.class);
         when(desiredCapabilities.getCapability(CapabilityType.PROXY)).thenReturn(proxy);
         when(desiredCapabilities.getCapability(SAUCE_OPTIONS)).thenReturn(sauceOptions);
         return desiredCapabilities;

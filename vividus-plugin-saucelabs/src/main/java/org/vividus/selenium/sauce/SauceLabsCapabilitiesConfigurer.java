@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2022 the original author or authors.
+ * Copyright 2019-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,19 +20,23 @@ import java.util.Set;
 
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.vividus.context.RunContext;
+import org.vividus.saucelabs.DataCenterProvider;
 import org.vividus.selenium.tunnel.AbstractTunnellingCapabilitiesConfigurer;
 
 public class SauceLabsCapabilitiesConfigurer extends AbstractTunnellingCapabilitiesConfigurer<SauceConnectOptions>
 {
     private static final String SAUCE_OPTIONS = "sauce:options";
 
+    private final String restUrl;
     private String sauceConnectArguments;
-    private String restUrl;
     private Set<String> skipHostGlobPatterns;
 
-    public SauceLabsCapabilitiesConfigurer(RunContext runContext, SauceConnectManager sauceConnectManager)
+    public SauceLabsCapabilitiesConfigurer(RunContext runContext, SauceConnectManager sauceConnectManager,
+            DataCenterProvider dataCenterProvider)
     {
         super(runContext, sauceConnectManager);
+        this.restUrl = dataCenterProvider.getDataCenter().apiServer + "rest/v1";
+        System.out.println(restUrl);
     }
 
     @Override
@@ -49,11 +53,6 @@ public class SauceLabsCapabilitiesConfigurer extends AbstractTunnellingCapabilit
     {
         return new SauceConnectOptions(restUrl, sauceConnectArguments,
                 skipHostGlobPatterns == null ? Set.of() : skipHostGlobPatterns);
-    }
-
-    public void setRestUrl(String restUrl)
-    {
-        this.restUrl = restUrl;
     }
 
     public void setSauceConnectArguments(String sauceConnectArguments)
